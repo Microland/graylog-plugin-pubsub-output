@@ -1,0 +1,8 @@
+Package: [[name]]
+Version: [[version]]
+Architecture: all
+Maintainer: Debasish Misra <debasishmisra3008@gmail.com>
+Section: web
+Priority: optional
+Depends: graylog-server | graylog-radio
+Description: [[description]]
