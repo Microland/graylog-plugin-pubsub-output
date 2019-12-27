@@ -49,9 +49,9 @@ public class PubSubOutput implements MessageOutput {
     private boolean shutdown;
     private static final String CK_CREDENTIAL_FILE = "credential_file";
     private static final String CK_TOPIC_NAME = "topic_name";
-    private static final String CK_CONFIG_HTTP_PROXY = "proxy url";
-    private static Configuration config;
-    private static final Logger LOG = LoggerFactory.getLogger(PubSubOutput.class);
+//    private static final String CK_CONFIG_HTTP_PROXY = "proxy url";
+    private final Configuration config;
+//    private static final Logger LOG = LoggerFactory.getLogger(PubSubOutput.class);
 
     @Inject
     public PubSubOutput(@Assisted Configuration conf) {
@@ -108,11 +108,6 @@ public class PubSubOutput implements MessageOutput {
             String topicId = config.getString(CK_TOPIC_NAME);
             String projectId = credMap.get("project_id");
             ProjectTopicName topicName = ProjectTopicName.of(projectId, topicId);
-//            System.setProperty("java.net.useSystemProxies", "true");
-
-//            System.setProperty("http.proxyHost", "172.21.10.100");
-//            System.setProperty("http.proxyPort", "80");
-//            System.setProperty("https.proxyPort","80");
 
             try (InputStream credential = new FileInputStream(Objects.requireNonNull(config.getString(CK_CREDENTIAL_FILE)))) {
                 CredentialsProvider credentialsProvider = FixedCredentialsProvider
@@ -124,30 +119,32 @@ public class PubSubOutput implements MessageOutput {
                 PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
                         .setData(finalData)
                         .build();
+//                System.out.println("topic: "+ topicId);
+//                System.out.println("topicNAME: "+ topicName.toString());
                 ApiFuture<String> future = publisher.publish(pubsubMessage);
                 messageIdFutures.add(future);
-//                ApiFutures.addCallback(
-//                        future,
-//                        new ApiFutureCallback<String>() {
-//
-//                            @Override
-//                            public void onFailure(Throwable throwable) {
-//                                if (throwable instanceof ApiException) {
-//                                    ApiException apiException = ((ApiException) throwable);
-//                                    // details on the API exception
-//                                    System.out.println(apiException.getStatusCode().getCode());
-//                                    System.out.println(apiException.isRetryable());
-//                                }
-//                                System.out.println("Error publishing message : " + String.valueOf(obj));
-//                            }
-//
-//                            @Override
-//                            public void onSuccess(String messageId) {
-//                                // Once published, returns server-assigned message ids (unique within the topic)
-//                                System.out.println(messageId);
-//                            }
-//                        },
-//                        MoreExecutors.directExecutor());
+                ApiFutures.addCallback(
+                        future,
+                        new ApiFutureCallback<String>() {
+
+                            @Override
+                            public void onFailure(Throwable throwable) {
+                                if (throwable instanceof ApiException) {
+                                    ApiException apiException = ((ApiException) throwable);
+                                    // details on the API exception
+                                    System.out.println(apiException.getStatusCode().getCode());
+                                    System.out.println(apiException.isRetryable());
+                                }
+                                System.out.println("Error publishing message : " + String.valueOf(obj));
+                            }
+
+                            @Override
+                            public void onSuccess(String messageId) {
+                                // Once published, returns server-assigned message ids (unique within the topic)
+                                System.out.println(messageId);
+                            }
+                        },
+                        MoreExecutors.directExecutor());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -159,7 +156,7 @@ public class PubSubOutput implements MessageOutput {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    publisher.awaitTermination(1, TimeUnit.MINUTES);
+                    publisher.awaitTermination(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -192,11 +189,6 @@ public class PubSubOutput implements MessageOutput {
                     "A Path to the TLS private key file", ConfigurationField.Optional.NOT_OPTIONAL));
             configurationRequest.addField(new TextField(CK_TOPIC_NAME, "Topic name", "",
                     "Topic where data is to be published", ConfigurationField.Optional.NOT_OPTIONAL));
-//            configurationRequest.addField(new TextField(CK_CONFIG_HTTP_PROXY,
-//                    "HTTP Proxy URI",
-//                    "",
-//                    "URI of HTTP Proxy to be used if required",
-//                    ConfigurationField.Optional.OPTIONAL));
             return configurationRequest;
         }
     }
